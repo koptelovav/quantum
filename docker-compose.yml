@@ -1,0 +1,75 @@
+version: '2'
+services:
+
+  # Application Laravel
+  app:
+    container_name: qs_app
+    build:
+      context: ./
+      dockerfile: ./docker/app.dockerfile
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    environment:
+      - "DB_PORT=3306"
+      - "DB_HOST=database"
+
+  # Web Server NGINX
+  web:
+    container_name: qs_web
+    build:
+      context: ./
+      dockerfile: ./docker/web.dockerfile
+    working_dir: /var/www
+    volumes_from:
+      - app
+    ports:
+      - 8780:80
+    environment:
+      - VIRTUAL_HOST=quantumsoft.docker
+
+  # The Database
+  database:
+    image: mysql:5.7
+    container_name: qs_database
+    volumes:
+      - mysql:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=qs_db
+      - MYSQL_USER=qs_user
+      - MYSQL_PASSWORD=qs_pass
+      - MYSQL_ROOT_PASSWORD=secret
+      - VIRTUAL_HOST=qs.mysql.docker
+    ports:
+      - "33062:3306"
+
+  # Redis
+  redis:
+    image: redis:3.2.6-alpine
+    container_name: qs_redis
+    expose:
+      - 6379
+
+  # Composer
+  composer:
+    image: composer
+    container_name: qs_composer
+    working_dir: /var/www
+    volumes_from:
+      - app
+
+  #NodeJS
+  node:
+    image: node:8
+    container_name: qs_node
+    working_dir: /var/www
+    user: "node"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./:/var/www
+    expose:
+      - 8081
+
+volumes:
+  mysql:
