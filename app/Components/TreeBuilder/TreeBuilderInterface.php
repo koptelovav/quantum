@@ -42,6 +42,12 @@ interface TreeBuilderInterface
     public function deleteById(int $id): self;
 
     /**
+     * Reset changed items
+     * @return mixed
+     */
+    public function applyChanges(): self;
+
+    /**
      * Flush cache
      *
      * @return TreeBuilderInterface

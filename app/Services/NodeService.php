@@ -19,7 +19,7 @@ class NodeService
      */
     public function getById(int $id): ?array
     {
-        $node = Node::where(['is_deleted' => false])->find($id);
+        $node = Node::find($id);
         return $node === null ? null : $node->toArray();
     }
 
@@ -77,6 +77,10 @@ class NodeService
                 }
                 if ($oldId !== null) {
                     $idMap[$oldId] = $node->id;
+                }
+
+                if (isset($item['is_deleted']) && $item['is_deleted']) {
+                    $node->delete();
                 }
             }
         } catch (\Exception $e) {

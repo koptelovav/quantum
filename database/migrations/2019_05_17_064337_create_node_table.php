@@ -17,8 +17,8 @@ class CreateNodeTable extends Migration
             $table->increments('id');
             $table->string('name', 256);
             $table->nestedSet();
-            $table->boolean('is_deleted')->default(0);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
