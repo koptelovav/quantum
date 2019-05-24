@@ -25,7 +25,7 @@
                 <div v-if="selectedCacheItem">
                     Selected node ID: {{ selectedCacheItem.id }} <br/>
                     <div v-if="editMode">
-                        Edit name: <input type="text" v-model="selectedCacheItem.name"/>
+                        Edit value: <input type="text" v-model="selectedCacheItem.value"/>
                         <button type="button" class="btn btn-primary btn-sm" v-on:click="updateName">Apply</button>
                     </div>
                 </div>
@@ -188,7 +188,7 @@
             updateName() {
                 const self = this;
                 axios.put('/api/cache/' + (this.selectedCacheItem.id), {
-                    name: this.selectedCacheItem.name
+                    value: this.selectedCacheItem.value
                 }).then(response => {
                     self.cacheData = response.data;
                     self.editMode = false;

@@ -91,12 +91,12 @@ class CacheController extends BaseController
      */
     public function update(Request $request, $id): JsonResponse
     {
-        $name = $request->input('name');
-        if ($name === null) {
-            throw new BadRequestHttpException('Name can not be empty');
+        $value = $request->input('value');
+        if ($value === null) {
+            throw new BadRequestHttpException('Value can not be blank');
         }
 
-        $tree = $this->treeCacheService->getFromCache()->updateName($id, $name);
+        $tree = $this->treeCacheService->getFromCache()->updateName($id, $value);
         $this->treeCacheService->saveToCache($tree);
 
         return response()->json($tree->getTree());

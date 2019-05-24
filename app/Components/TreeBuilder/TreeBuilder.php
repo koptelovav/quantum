@@ -66,7 +66,7 @@ class TreeBuilder implements TreeBuilderInterface
         if (isset($this->items[$parentId]) && !$this->items[$parentId]['is_deleted']) {
             $this->add([
                 'id' => $this->newId,
-                'name' => 'new' . $this->newId,
+                'value' => 'new' . $this->newId,
                 'parent_id' => $parentId,
             ]);
             $this->changed[$this->newId] = &$this->items[$this->newId];
@@ -76,10 +76,10 @@ class TreeBuilder implements TreeBuilderInterface
         return $this;
     }
 
-    public function updateName(int $id, string $name): TreeBuilderInterface
+    public function updateName(int $id, string $value): TreeBuilderInterface
     {
         if (isset($this->items[$id]) && !$this->items[$id]['is_deleted']) {
-            $this->items[$id]['name'] = $name;
+            $this->items[$id]['value'] = $value;
             $this->changed[$id] = &$this->items[$id];
         }
 
@@ -164,7 +164,7 @@ class TreeBuilder implements TreeBuilderInterface
     {
         $this->items[$attributes['id']] = [
             'id' => $attributes['id'],
-            'name' => $attributes['name'],
+            'value' => $attributes['value'],
             'parent_id' => $attributes['parent_id'] ?? null,
             'is_deleted' => $attributes['is_deleted'] ?? false,
             'ancestors' => $attributes['ancestors'] ?? [],

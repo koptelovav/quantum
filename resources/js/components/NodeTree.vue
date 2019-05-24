@@ -2,7 +2,7 @@
     <li class="node-tree"
         v-bind:class="{deleted: node.is_deleted, active: node.id === selectedItem}"
     >
-        <span class="label" v-on:click="triggerClick">{{ node.name }}</span>
+        <span class="label" v-on:click="triggerClick">{{ node.value }}</span>
 
         <ul v-if="node.children">
             <node v-for="child in node.children" v-bind:key="child.id" :node="child" :selected-item="selectedItem"
@@ -24,14 +24,14 @@
                 if (!this.node.is_deleted) {
                     this.$emit("selected", {
                         id: this.node.id,
-                        name: this.node.name
+                        value: this.node.value
                     })
                 }
             },
             triggerChildClick (item) {
                 this.$emit("selected", {
                     id: item.id,
-                    name: item.name
+                    value: item.value
                 })
             }
         }

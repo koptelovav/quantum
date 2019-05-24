@@ -25,13 +25,13 @@ interface TreeBuilderInterface
     public function addChild(int $id): self;
 
     /**
-     * Update node name
+     * Update node value
      *
      * @param $id
-     * @param string $name
+     * @param string $value
      * @return TreeBuilderInterface
      */
-    public function updateName(int $id, string $name): self;
+    public function updateName(int $id, string $value): self;
 
     /**
      * Delete item by id

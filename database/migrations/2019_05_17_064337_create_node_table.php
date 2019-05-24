@@ -15,7 +15,7 @@ class CreateNodeTable extends Migration
     {
         Schema::create('nodes', static function (Blueprint $table) {
             $table->increments('id');
-            $table->string('name', 256);
+            $table->string('value', 256);
             $table->nestedSet();
             $table->timestamps();
             $table->softDeletes();

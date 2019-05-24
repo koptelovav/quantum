@@ -10,7 +10,7 @@ use Kalnoy\Nestedset\NodeTrait;
 /**
  * Class Node
  * @property $id int
- * @property $name string
+ * @property $value string
  * @property $parent_id int
  * @property $is_deleted int
  * @property $_lft
@@ -27,7 +27,7 @@ class Node extends Model
 
     protected $fillable = [
         'id',
-        'name',
+        'value',
         'parent_id',
     ];
 
