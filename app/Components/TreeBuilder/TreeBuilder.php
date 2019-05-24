@@ -37,6 +37,7 @@ class TreeBuilder implements TreeBuilderInterface
 
     /**
      * All parents of added items
+     *
      * @var array
      */
     protected $ancestors = [];
@@ -63,39 +64,34 @@ class TreeBuilder implements TreeBuilderInterface
 
     public function addChild(int $parentId): TreeBuilderInterface
     {
-        if (isset($this->items[$parentId]) && !$this->items[$parentId]['is_deleted']) {
-            $this->add([
-                'id' => $this->newId,
-                'value' => 'new' . $this->newId,
-                'parent_id' => $parentId,
-            ]);
-            $this->changed[$this->newId] = &$this->items[$this->newId];
-            $this->newId--;
-        }
+        $ancestors = $this->items[$parentId]['ancestors'];
+        $ancestors[] = $parentId;
+
+        $this->add([
+            'id' => $this->newId,
+            'value' => 'new' . $this->newId,
+            'parent_id' => $parentId,
+            'ancestors' => $ancestors,
+        ]);
+
+        $this->changed[$this->newId] = &$this->items[$this->newId];
+        $this->newId--;
 
         return $this;
     }
 
     public function updateName(int $id, string $value): TreeBuilderInterface
     {
-        if (isset($this->items[$id]) && !$this->items[$id]['is_deleted']) {
-            $this->items[$id]['value'] = $value;
-            $this->changed[$id] = &$this->items[$id];
-        }
+        $this->items[$id]['value'] = $value;
+        $this->changed[$id] = &$this->items[$id];
 
         return $this;
     }
 
     public function deleteById(int $id): TreeBuilderInterface
     {
-        if (isset($this->items[$id])) {
-            $this->items[$id]['is_deleted'] = true;
-            $this->changed[$id] = &$this->items[$id];
-
-            foreach ($this->items[$id]['children'] as $child) {
-                $this->deleteById($child['id']);
-            }
-        }
+        $this->items[$id]['is_deleted'] = true;
+        $this->changed[$id] = &$this->items[$id];
 
         if (isset($this->ancestors[$id])) {
             foreach ($this->ancestors[$id] as $childId => $child) {
@@ -106,9 +102,14 @@ class TreeBuilder implements TreeBuilderInterface
         return $this;
     }
 
-    public function applyChanges(): TreeBuilderInterface
+    public function applyChanges(array $idMap = []): TreeBuilderInterface
     {
-        $this->changed = [];
+        if (empty($idMap)) {
+            $this->changed = [];
+        } else {
+            $this->rebuildTree($idMap);
+        }
+
         return $this;
     }
 
@@ -209,6 +210,21 @@ class TreeBuilder implements TreeBuilderInterface
     }
 
     /**
+     * Mark as deleted if the parent object is already deleted in the cache
+     *
+     * @param int $itemId
+     */
+    protected function markDeleted(int $itemId): void
+    {
+        foreach ($this->items[$itemId]['ancestors'] as $ancestorId) {
+            if (isset($this->items[$ancestorId]) && $this->items[$ancestorId]['is_deleted']) {
+                $this->deleteById($itemId);
+                break;
+            }
+        }
+    }
+
+    /**
      * Build item tree for UI
      *
      * @param int $itemId
@@ -231,17 +247,33 @@ class TreeBuilder implements TreeBuilderInterface
     }
 
     /**
-     * Mark as deleted if the parent object is already deleted in the cache
+     * Build tree with new IDs
      *
-     * @param int $itemId
+     * @param array $idMap
      */
-    protected function markDeleted(int $itemId): void
+    protected function rebuildTree(array $idMap = []): void
     {
-        foreach ($this->items[$itemId]['ancestors'] as $ancestorId) {
-            if (isset($this->items[$ancestorId]) && $this->items[$ancestorId]['is_deleted']) {
-                $this->deleteById($itemId);
-                break;
+        $items = $this->items;
+        $this->flush();
+
+        foreach ($idMap as $oldId => $newId) {
+            $items[$newId] = $items[$oldId];
+            unset($items[$oldId]);
+
+            $items[$newId]['id'] = $newId;
+            $items[$newId]['parent_id'] = $idMap[$items[$newId]['parent_id']] ?? $items[$newId]['parent_id'];
+
+            foreach ($items[$newId]['ancestors'] as $ancestorId) {
+                if(isset($idMap[$ancestorId])) {
+                    $key = array_search($ancestorId, $items[$newId]['ancestors'], true);
+                    unset($items[$newId]['ancestors'][$key]);
+                    $items[$newId]['ancestors'][] = $idMap[$ancestorId];
+                }
             }
+        }
+
+        foreach ($items as $item) {
+            $this->add($item);
         }
     }
 }

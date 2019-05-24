@@ -108,8 +108,8 @@ class CacheController extends BaseController
     public function save(): void
     {
         $tree = $this->treeCacheService->getFromCache();
-        if ($this->nodeService->batchSave($tree->getChangedItems())) {
-            $tree->applyChanges();
+        if ($this->nodeService->batchSave($tree->getChangedItems(), $idMap)) {
+            $tree->applyChanges($idMap ?? []);
             $this->treeCacheService->saveToCache($tree);
         } else {
             throw new \RuntimeException('Error while saving cache');

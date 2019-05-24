@@ -40,14 +40,14 @@ class NodeService
      * Batch cache saving
      *
      * @param array $items
+     * @param array $idMap
      * @return bool
      */
-    public function batchSave(array $items): bool
+    public function batchSave(array $items, &$idMap = []): bool
     {
         DB::beginTransaction();
 
         try {
-            $idMap = [];
             foreach ($items as $item) {
                 $oldId = null;
                 /** @var Node $node */

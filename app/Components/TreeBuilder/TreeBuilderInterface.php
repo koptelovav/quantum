@@ -43,9 +43,10 @@ interface TreeBuilderInterface
 
     /**
      * Reset changed items
-     * @return mixed
+     * @param array $idMap
+     * @return TreeBuilderInterface
      */
-    public function applyChanges(): self;
+    public function applyChanges(array $idMap = []): self;
 
     /**
      * Flush cache
