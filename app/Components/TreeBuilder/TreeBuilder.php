@@ -38,10 +38,8 @@ class TreeBuilder implements TreeBuilderInterface
 
     public function add(array $attributes): TreeBuilderInterface
     {
-        //re-add item from DB. restores the name and state of the item.
+        //Skip already added item
         if (isset($this->items[$attributes['id']])) {
-            $this->items[$attributes['id']]['value'] = $attributes['value'];
-            $this->items[$attributes['id']]['is_deleted'] = $attributes['is_deleted'];
             return $this;
         }
 
@@ -80,17 +78,13 @@ class TreeBuilder implements TreeBuilderInterface
 
     public function deleteById(int $id): TreeBuilderInterface
     {
-        $this->items[$id]['is_deleted'] = true;
+        $this->deleteCascade($id);
         $this->changed[$id] = &$this->items[$id];
-
-        foreach ($this->items[$id]['children'] as $child) {
-            $this->deleteById($child['id']);
-        }
 
         //check unrelated items
         foreach ($this->tree as $rootNode) {
             if (in_array($id, $rootNode['ancestors'], true)) {
-                $this->deleteById($rootNode['id']);
+                $this->deleteCascade($rootNode['id']);
             }
         }
 
@@ -208,5 +202,26 @@ class TreeBuilder implements TreeBuilderInterface
                 $this->items[$id]['is_deleted'] = true;
             }
         }
+    }
+
+    /**
+     * Delete the item with children without recursion
+     *
+     * @param int $id
+     */
+    protected function deleteCascade(int $id): void
+    {
+        $children = [$id];
+
+        do {
+            $childId = array_shift($children);
+
+            if (!$this->items[$childId]['is_deleted']) {
+                $this->items[$childId]['is_deleted'] = true;
+                foreach ($this->items[$childId]['children'] as $subChild) {
+                    $children[] = $subChild['id'];
+                }
+            }
+        } while (!empty($children));
     }
 }
