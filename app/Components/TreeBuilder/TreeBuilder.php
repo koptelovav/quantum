@@ -9,12 +9,6 @@ namespace App\Components\TreeBuilder;
 class TreeBuilder implements TreeBuilderInterface
 {
     /**
-     * Completed items tree
-     *
-     * @var array
-     */
-    protected $tree = [];
-    /**
      * Items added
      *
      * @var array
@@ -22,25 +16,18 @@ class TreeBuilder implements TreeBuilderInterface
     protected $items = [];
 
     /**
-     * All items with parent ID
+     * Completed items tree
      *
      * @var array
      */
-    protected $parents = [];
+    protected $tree = [];
 
     /**
-     * Modified items are ready to save
+     * Changed items ready to save
      *
      * @var array
      */
     protected $changed = [];
-
-    /**
-     * All parents of added items
-     *
-     * @var array
-     */
-    protected $ancestors = [];
 
     /**
      * Next id for new items
@@ -51,12 +38,15 @@ class TreeBuilder implements TreeBuilderInterface
 
     public function add(array $attributes): TreeBuilderInterface
     {
-        $item = $this->registerItem($attributes);
+        //re-add item from DB. restores the name and state of the item.
+        if (isset($this->items[$attributes['id']])) {
+            $this->items[$attributes['id']]['value'] = $attributes['value'];
+            $this->items[$attributes['id']]['is_deleted'] = $attributes['is_deleted'];
+            return $this;
+        }
 
-        $this->resetItemChanges($item['id']);
-        $this->registerAncestors($item['id']);
-        $this->registerDirectParent($item['id'], $item['parent_id']);
-        $this->buildTree($item['id'], $item['parent_id']);
+        $item = $this->registerItem($attributes);
+        $this->addToTree($item['id']);
         $this->markDeleted($item['id']);
 
         return $this;
@@ -93,9 +83,14 @@ class TreeBuilder implements TreeBuilderInterface
         $this->items[$id]['is_deleted'] = true;
         $this->changed[$id] = &$this->items[$id];
 
-        if (isset($this->ancestors[$id])) {
-            foreach ($this->ancestors[$id] as $childId => $child) {
-                $this->deleteById($childId);
+        foreach ($this->items[$id]['children'] as $child) {
+            $this->deleteById($child['id']);
+        }
+
+        //check unrelated items
+        foreach ($this->tree as $rootNode) {
+            if (in_array($id, $rootNode['ancestors'], true)) {
+                $this->deleteById($rootNode['id']);
             }
         }
 
@@ -104,12 +99,28 @@ class TreeBuilder implements TreeBuilderInterface
 
     public function applyChanges(array $idMap = []): TreeBuilderInterface
     {
-        if (empty($idMap)) {
-            $this->changed = [];
-        } else {
-            $this->rebuildTree($idMap);
+        foreach ($idMap as $oldId => $newId) {
+            //replace item ID
+            $this->items[$oldId]['id'] = $newId;
+
+            //replace item parent ID
+            if (isset($idMap[$this->items[$oldId]['parent_id']])) {
+                $this->items[$oldId]['parent_id'] = $idMap[$this->items[$oldId]['parent_id']];
+            }
+
+            //replace item ancestors ID
+            foreach ($this->items[$oldId]['ancestors'] as $key => $ancestorId) {
+                if (isset($idMap[$ancestorId])) {
+                    $this->items[$oldId]['ancestors'][$key] = $idMap[$ancestorId];
+                }
+            }
+
+            //register item with new ID
+            $this->items[$newId] = &$this->items[$oldId];
+            unset($this->items[$oldId]);
         }
 
+        $this->changed = [];
         return $this;
     }
 
@@ -117,9 +128,7 @@ class TreeBuilder implements TreeBuilderInterface
     {
         $this->tree = [];
         $this->items = [];
-        $this->parents = [];
         $this->changed = [];
-        $this->ancestors = [];
         $this->newId = -1;
 
         return $this;
@@ -147,16 +156,11 @@ class TreeBuilder implements TreeBuilderInterface
      */
     public function __sleep()
     {
-        return ['items', 'tree', 'parents', 'changed', 'ancestors', 'newId'];
-    }
-
-    protected function resetItemChanges(int $itemId): void
-    {
-        unset($this->changed[$itemId]);
+        return ['items', 'tree', 'changed', 'newId'];
     }
 
     /**
-     * Register new item
+     * Add a new item to registry (item array)
      *
      * @param array $attributes
      * @return array
@@ -176,104 +180,33 @@ class TreeBuilder implements TreeBuilderInterface
     }
 
     /**
-     * Register all item`s parents
-     * Used to speed up tree searches
+     * Add a new item to tree
      *
-     * @param int $itemId
+     * @param int $id
      */
-    protected function registerAncestors(int $itemId): void
+    protected function addToTree(int $id): void
     {
-        foreach ($this->items[$itemId]['ancestors'] as $ancestorId) {
-            if (!isset($this->ancestors[$ancestorId])) {
-                $this->ancestors[$ancestorId] = [];
-            }
+        $this->tree[] = &$this->items[$id];
 
-            $this->ancestors[$ancestorId][$itemId] = &$this->items[$itemId];
+        foreach ($this->tree as $key => $rootItem) {
+            if (isset($this->items[$rootItem['parent_id']])) {
+                $this->items[$rootItem['parent_id']]['children'][] = &$this->items[$rootItem['id']];
+                unset($this->tree[$key]);
+            }
         }
     }
 
     /**
-     * Register item parent
-     * Used to build tree
+     * Mark the item as deleted if its parent has already been deleted.
      *
-     * @param int $itemId
-     * @param int|null $parentId
+     * @param int $id
      */
-    protected function registerDirectParent(int $itemId, ?int $parentId): void
+    protected function markDeleted(int $id): void
     {
-        if ($parentId !== null) {
-            if (!isset($this->parents[$parentId])) {
-                $this->parents[$parentId] = [];
-            }
-            $this->parents[$parentId][$itemId] = &$this->items[$itemId];
-        }
-    }
-
-    /**
-     * Mark as deleted if the parent object is already deleted in the cache
-     *
-     * @param int $itemId
-     */
-    protected function markDeleted(int $itemId): void
-    {
-        foreach ($this->items[$itemId]['ancestors'] as $ancestorId) {
+        foreach ($this->items[$id]['ancestors'] as $ancestorId) {
             if (isset($this->items[$ancestorId]) && $this->items[$ancestorId]['is_deleted']) {
-                $this->deleteById($itemId);
-                break;
+                $this->items[$id]['is_deleted'] = true;
             }
-        }
-    }
-
-    /**
-     * Build item tree for UI
-     *
-     * @param int $itemId
-     * @param int|null $parentId
-     */
-    protected function buildTree(int $itemId, ?int $parentId): void
-    {
-        if (isset($this->parents[$itemId])) {
-            $this->items[$itemId]['children'] = &$this->parents[$itemId];
-            foreach ($this->parents[$itemId] as $childId => $item) {
-                unset($this->tree[$childId]);
-            }
-        }
-
-        if (isset($this->items[$parentId])) {
-            $this->items[$parentId]['children'][$itemId] = &$this->items[$itemId];
-        } else {
-            $this->tree[$itemId] = &$this->items[$itemId];
-        }
-    }
-
-    /**
-     * Build tree with new IDs
-     *
-     * @param array $idMap
-     */
-    protected function rebuildTree(array $idMap = []): void
-    {
-        $items = $this->items;
-        $this->flush();
-
-        foreach ($idMap as $oldId => $newId) {
-            $items[$newId] = $items[$oldId];
-            unset($items[$oldId]);
-
-            $items[$newId]['id'] = $newId;
-            $items[$newId]['parent_id'] = $idMap[$items[$newId]['parent_id']] ?? $items[$newId]['parent_id'];
-
-            foreach ($items[$newId]['ancestors'] as $ancestorId) {
-                if(isset($idMap[$ancestorId])) {
-                    $key = array_search($ancestorId, $items[$newId]['ancestors'], true);
-                    unset($items[$newId]['ancestors'][$key]);
-                    $items[$newId]['ancestors'][] = $idMap[$ancestorId];
-                }
-            }
-        }
-
-        foreach ($items as $item) {
-            $this->add($item);
         }
     }
 }
