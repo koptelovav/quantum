@@ -10,6 +10,18 @@ use Illuminate\Support\Facades\Redis;
  */
 class RedisCacheStorage implements StorageInterface
 {
+    protected $ttl;
+
+    /**
+     * RedisCacheStorage constructor
+     *
+     * @param int $ttl Cache lifetime (Default 1 hour)
+     */
+    public function __construct(int $ttl = 3600)
+    {
+        $this->ttl = $ttl;
+    }
+
     public function get(string $key): ?string
     {
         return Redis::get($key);
@@ -17,6 +29,6 @@ class RedisCacheStorage implements StorageInterface
 
     public function store(string $key, string $value): bool
     {
-        return (bool)Redis::set($key, $value);
+        return (bool)Redis::set($key, $value, 'EX', $this->ttl);
     }
 }
