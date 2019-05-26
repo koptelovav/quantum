@@ -12,6 +12,42 @@
     </li>
 </template>
 
+<style lang="scss">
+    .node-tree {
+        padding: 0;
+
+        .label {
+            margin: 0 -7px;
+            padding: 0 4px;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        ul {
+            width: 100%;
+            margin-top: 0;
+        }
+
+        &.deleted > .label{
+            background: #b91d19;
+            color: #fff;
+        }
+
+        &.active > .label {
+            background: #5cd08d;
+            color: #fff;
+        }
+
+        &:not(.deleted) > .label {
+            cursor: pointer;
+        }
+
+        &:not(.deleted):not(.active) > .label:hover {
+            background: #e0ffe6;
+        }
+    }
+</style>
+
 <script>
     export default {
         name: "node",

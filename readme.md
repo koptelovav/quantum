@@ -2,7 +2,7 @@
 
 #### Используемые технологии
 
-PHP7, MySQL, Redis, Vue.js, Bootstrap 4, Laravel, Docker
+PHP7, MySQL, Redis, Vue.js, Bootstrap 4, SCSS, Laravel, Docker
 
 #### Описание классов
 

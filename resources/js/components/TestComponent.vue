@@ -60,7 +60,7 @@
     </div>
 </template>
 
-<style>
+<style lang="scss">
     .alert-area {
         height: 55px;
     }
@@ -68,6 +68,13 @@
     .loader {
         text-align: center;
         margin-top: 30vh;
+    }
+
+    .tree-view {
+        min-height: 60vh;
+        border-left: 1px solid #dfdfdf;
+        border-right: 1px solid #dfdfdf;
+        border-bottom: 1px solid #dfdfdf;
     }
 </style>
 
