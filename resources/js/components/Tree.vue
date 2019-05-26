@@ -87,6 +87,10 @@
     ul.tree-list li:last-child:before {
         border-left:1px solid rgb(230,230,230);
     }
+
+    .tree > ul.tree-list:only-child > li:before{
+        border: 0;
+    }
 </style>
 
 <script>
